@@ -1,5 +1,5 @@
 {
-    "name": "QuickBaseServices/quickbase-php",
+    "name": "quickbaseservices/quickbase-php",
     "description": "A full-featured PHP wrapper for the QuickBase API.",
     "license" : "MIT",
     "type": "library",
