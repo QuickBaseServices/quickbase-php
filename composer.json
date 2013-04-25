@@ -1,17 +1,22 @@
 {
-    "name": "brooklab/quickbase",
+    "name": "QuickBaseServices/quickbase-php",
     "description": "A full-featured PHP wrapper for the QuickBase API.",
     "license" : "MIT",
     "type": "library",
-    "homepage": "https://github.com/BrookLab/quickbase-php",
+    "homepage": "https://github.com/QuickBaseServices/quickbase-php",
     "require": {
         "php": ">=4.7.0",
         "ext-curl": "*"
     },
     "support": {
-        "email": "joshua@mcginn.is"
+        "email": "nestor@quickbaseservices.com"
     }, 
     "authors": [
+        {
+            "name": "Nestor Toro",
+            "email": "nestor@quickbaseservices.com",
+            "homepage": "http://www.quickbaseservices.com"
+        },
         {
             "name": "Joshua McGinnis",
             "email": "joshua@mcginn.is",
