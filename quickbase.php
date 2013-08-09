@@ -1088,7 +1088,7 @@ class QuickBase
     }
 
     if($response) {
-      return $response->num_records_deleted;
+      return $response;
     }
     return false;
   }
