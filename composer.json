@@ -9,9 +9,14 @@
         "ext-curl": "*"
     },
     "support": {
-        "email": "nestor@quickbaseservices.com"
+        "email": "jeffrey@cloudbaseservices.com"
     }, 
     "authors": [
+        {
+            "name": "Jeffrey Rothman",
+            "email": "jeffrey@cloudbaseservices.com",
+            "homepage": "http://www.cloudbaseservices.com"
+        },
         {
             "name": "Nestor Toro",
             "email": "nestor@quickbaseservices.com",
