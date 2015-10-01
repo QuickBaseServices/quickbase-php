@@ -892,6 +892,10 @@ class QuickBase {
             $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
             $xml_packet->addChild('rid', $rid);
             $xml_packet->addChild('ticket', $this->ticket);
+
+            if ($this->app_token)
+                $xml_packet->addChild('apptoken', $this->app_token);
+                
             $xml_packet = $xml_packet->asXML();
 
             $response = $this->transmit($xml_packet, 'API_GetRecordAsHTML', "", false);
@@ -916,7 +920,7 @@ class QuickBase {
 
             if ($this->app_token)
                 $xml_packet->addChild('apptoken', $this->app_token);
-                
+
             $xml_packet = $xml_packet->asXML();
 
             $response = $this->transmit($xml_packet, 'API_GetRecordInfo');
