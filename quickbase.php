@@ -308,80 +308,6 @@ class QuickBase {
         return false;
     }
 
-    /* API_CloneDatabase: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579981 */
-    public function clone_database($new_name, $new_desc = '', $keep_data = 1, $asTemplate = 1) {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('newdbname', $new_name);
-            $xml_packet->addChild('newdbdesc', $new_desc);
-            $xml_packet->addChild('keepData', $keep_data);
-            $xml_packet->addChild('asTemplate', $asTemplate);
-
-            if ($this->app_token)
-                $xml_packet->addChild('apptoken', $this->app_token);
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_CloneDatabase');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_CloneDatabase&ticket=" . $this->ticket
-                . "&newdbname=" . $new_name
-                . "&newdbdesc=" . $new_desc
-                . "&keepData=" . $keep_data;
-
-            $response = $this->transmit($url_string);
-        }
-        if ($response) {
-            return $response->newdbid;
-        }
-        return false;
-    }
-
-    /* API_CreateDatabase: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579984 */
-    public function create_database($db_name, $db_desc) {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('dbname', $db_name);
-            $xml_packet->addChild('dbdesc', $db_desc);
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_CreateDatabase');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_CreateDatabase&ticket=" . $this->ticket
-                . "&dbname=" . $db_name
-                . "&dbdesc=" . $db_desc;
-
-            $response = $this->transmit($url_string);
-        }
-
-        if ($response) {
-            return $response->dbid;
-        }
-        return false;
-    }
-
-    /* API_DeleteDatabase: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579988*/
-    public function delete_database() {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_DeleteDatabase');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_DeleteDatabase&ticket=" . $this->ticket;
-
-            $response = $this->transmit($url_string);
-        }
-
-        if ($response) {
-            return true;
-        }
-        return false;
-    }
-
     /* API_DeleteField: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579992*/
     public function delete_field($fid) {
         if ($this->xml) {
@@ -895,7 +821,7 @@ class QuickBase {
 
             if ($this->app_token)
                 $xml_packet->addChild('apptoken', $this->app_token);
-                
+
             $xml_packet = $xml_packet->asXML();
 
             $response = $this->transmit($xml_packet, 'API_GetRecordAsHTML', "", false);
