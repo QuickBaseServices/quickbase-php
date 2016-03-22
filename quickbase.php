@@ -1,6 +1,6 @@
 <?php
 
-class quickbase
+class QuickBase
 {
     /*---------------------------------------------------------------------
     // User Configurable Options
