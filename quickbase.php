@@ -134,25 +134,18 @@ class QuickBase {
 
     /* API_Authenticate: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579970 */
     public function authenticate() {
-        if ($this->xml) {
+        $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
+        $xml_packet->addChild('username', $this->username);
+        $xml_packet->addChild('password', $this->password);
 
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('username', $this->username);
-            $xml_packet->addChild('password', $this->password);
-
-            if ($this->ticketHours)
-                $xml_packet->addChild('hours', $this->ticketHours);
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_Authenticate', $this->qb_ssl . "main");
-        } else {
-            $url_string = $this->qb_ssl . "main?act=API_Authenticate&username=" . $this->username . "&password=" . $this->password;
-
-            $response = $this->transmit($url_string);
+        if ($this->ticketHours) {
+            $xml_packet->addChild('hours', $this->ticketHours);
         }
 
+        $xml_packet->addChild('ticket', $this->ticket);
+        $xml_packet = $xml_packet->asXML();
+
+        $response = $this->transmit($xml_packet, 'API_Authenticate', $this->qb_ssl . "main");
         if ($response) {
             $this->ticket = (string)$response->ticket;
             $this->user_id = (string)$response->userid;
@@ -163,14 +156,14 @@ class QuickBase {
     /* For Use with Support Portal Authentication */
     public function authenticate_ticket($ticket, $realm) {
         $response = null;
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('ticket', $ticket);
-            $xml_packet = $xml_packet->asXML();
 
-            $realm_url = ($realm ? "https://" . $realm . ".quickbase.com/db/" : $this->qb_ssl);
-            $response = $this->transmit($xml_packet, 'API_Authenticate', $realm_url . "main");
-        }
+        $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
+        $xml_packet->addChild('ticket', $ticket);
+        $xml_packet = $xml_packet->asXML();
+
+        $realm_url = ($realm ? "https://" . $realm . ".quickbase.com/db/" : $this->qb_ssl);
+        $response = $this->transmit($xml_packet, 'API_Authenticate', $realm_url . "main");
+
         if ($response) {
             return $response->userid;
         } else {
@@ -178,110 +171,40 @@ class QuickBase {
         }
     }
 
-    /* API_AddField: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579958 */
-    public function add_field($field_name, $type) {
-        $response = null;
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('label', $field_name);
-            $xml_packet->addChild('type', $type);
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_AddField');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_AddField&ticket=" . $this->ticket . "&label=" . $field_name . "&type=" . $type;
-
-            $response = $this->transmit($url_string);
-        }
-
-        if ($response->errcode == 0) {
-            return $response->fid;
-        }
-        return false;
-    }
-
     /* API_AddRecord: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579962 */
     public function add_record($fields, $uploads = array()) {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
+        $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
 
-            $i = intval(0);
-            foreach ($fields as $field) {
-                $safe_value = preg_replace('/&(?!\w+;)/', '&amp;', $field['value']);
+        $i = intval(0);
+        foreach ($fields as $field) {
+            $safe_value = preg_replace('/&(?!\w+;)/', '&amp;', $field['value']);
 
-                $xml_packet->addChild('field', $safe_value);
-                $xml_packet->field[$i]->addAttribute('fid', $field['fid']);
+            $xml_packet->addChild('field', $safe_value);
+            $xml_packet->field[$i]->addAttribute('fid', $field['fid']);
+            $i++;
+        }
+
+        if ($uploads) {
+            foreach ($uploads as $upload) {
+                $xml_packet->addChild('field', $upload['value']);
+                $xml_packet->field[$i]->addAttribute('fid', $upload['fid']);
+                $xml_packet->field[$i]->addAttribute('filename', $upload['filename']);
                 $i++;
             }
-
-            if ($uploads) {
-                foreach ($uploads as $upload) {
-                    $xml_packet->addChild('field', $upload['value']);
-                    $xml_packet->field[$i]->addAttribute('fid', $upload['fid']);
-                    $xml_packet->field[$i]->addAttribute('filename', $upload['filename']);
-                    $i++;
-                }
-            }
-
-            if ($this->app_token)
-                $xml_packet->addChild('apptoken', $this->app_token);
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_AddRecord');
-            if (!$response) {
-                throw new Exception("QuickBase: Add_Record Failed. \n Request: \n" . $xml_packet->asXML() . "\n Response: " . $response->asXML());
-            } else {
-                return $response;
-            }
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_AddRecord&ticket=" . $this->ticket;
-
-            foreach ($fields as $field) {
-                $url_string .= "&_fid_" . $field['fid'] . "=" . urlencode($field['value']) . "";
-            }
-
-            $response = $this->transmit($url_string);
         }
-        if ($response) {
+
+        if ($this->app_token)
+            $xml_packet->addChild('apptoken', $this->app_token);
+
+        $xml_packet->addChild('ticket', $this->ticket);
+        $xml_packet = $xml_packet->asXML();
+
+        $response = $this->transmit($xml_packet, 'API_AddRecord');
+        if (!$response) {
+            throw new Exception("QuickBase: Add_Record Failed. \n Request: \n" . $xml_packet->asXML() . "\n Response: " . $response->asXML());
+        } else {
             return $response;
         }
-        throw new Exception("QuickBase: Add_Record Failed. \n Request: \n" . $url_string . "\n Response: " . $response->asXML());
-    }
-
-    /* API_ChangePermission: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579974 */
-    public function change_permission($uname, $modify, $view, $create, $save_views, $delete, $admin) {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('uname', $uname);
-            $xml_packet->addChild('modify', $modify);
-            $xml_packet->addChild('view', $view);
-            $xml_packet->addChild('create', $create);
-            $xml_packet->addChild('saveviews', $save_views);
-            $xml_packet->addChild('delete', $delete);
-            $xml_packet->addChild('admin', $admin);
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_ChangePermission');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_ChangePermission&ticket=" . $this->ticket
-                . "&uname=" . $uname
-                . "&modify=" . $modify
-                . "&view=" . $view
-                . "&create=" . $create
-                . "&saveviews=" . $save_views
-                . "&delete=" . $delete
-                . "&admin=" . $admin;
-
-            $response = $this->transmit($url_string);
-        }
-        if ($response) {
-            return $response;
-        }
-        return false;
     }
 
     /* API_ChangeRecordOwner: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579977 */
@@ -298,28 +221,6 @@ class QuickBase {
             $url_string = $this->qb_ssl . $this->db_id . "?act=API_ChangeRecordOwner&ticket=" . $this->ticket
                 . "&rid=" . $rid
                 . "&newowner=" . $new_owner;
-
-            $response = $this->transmit($url_string);
-        }
-
-        if ($response) {
-            return true;
-        }
-        return false;
-    }
-
-    /* API_DeleteField: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126579992*/
-    public function delete_field($fid) {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('fid', $fid);
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_DeleteField');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_DeleteField&ticket=" . $this->ticket
-                . "&fid=" . $fid;
 
             $response = $this->transmit($url_string);
         }
@@ -526,68 +427,6 @@ class QuickBase {
             return $response;
         } else
             return false;
-    }
-
-    /* API_FieldAddChoices: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126580007 */
-    public function field_add_choices($fid, $choices) {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('fid', $fid);
-
-            foreach ($choices as $choice) {
-                $xml_packet->addChild('choice', $choice);
-            }
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_FieldAddChoices');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_FieldAddChoices&ticket=" . $this->ticket
-                . "&fid=" . $fid;
-            foreach ($choices as $choice) {
-                $url_string .= '&choice=' . $choice;
-            }
-
-            $response = $this->transmit($url_string);
-        }
-
-        if ($response) {
-            return $response->numadded;
-        }
-
-        return false;
-    }
-
-    /* API_FieldRemoveChoices: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126580011 */
-    public function field_remove_choices($fid, $choices) {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('fid', $fid);
-
-            foreach ($choices as $choice) {
-                $xml_packet->addChild('choice', $choice);
-            }
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_FieldRemoveChoices');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . "?act=API_FieldRemoveChoices&ticket=" . $this->ticket
-                . "&fid=" . $fid;
-
-            foreach ($choices as $choice) {
-                $url_string .= '&choice=' . $choice;
-            }
-
-            $response = $this->transmit($url_string);
-        }
-
-        if ($response) {
-            return $response->numremoved;
-        }
-        return false;
     }
 
     /* API_GenAddRecordForm: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126580019 */
@@ -1008,28 +847,6 @@ class QuickBase {
         return false;
     }
 
-    /* API_SetFieldProperties: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126580065 */
-    public function set_field_properties($properties, $fid) {
-        $response = null;
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('fid', $fid);
-
-            foreach ($properties as $key => $value) {
-                $xml_packet->addChild($key, $value);
-            }
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-            $response = $this->transmit($xml_packet, 'API_SetFieldProperties');
-        }
-
-        if ($response) {
-            return true;
-        }
-        return false;
-    }
-
     /* API_SignOut: https://www.quickbase.com/up/6mztyxu8/g/rc7/en/va/QuickBaseAPI.htm#_Toc126580069 */
     public function sign_out() {
         if ($this->xml) {
@@ -1044,36 +861,6 @@ class QuickBase {
 
         if ($response) {
             return true;
-        }
-        return false;
-    }
-
-    /* API_AddUserToRole */
-    public function api_add_user_to_role($userId, $roleId, $udata = NULL) {
-        $response = null;
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('userid', $userId);
-            $xml_packet->addChild('roleid', $roleId);
-
-            if (isset($udata))
-                $xml_packet->addChild('udata', $udata);
-
-            if ($this->app_token)
-                $xml_packet->addChild('apptoken', $this->app_token);
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_AddUserToRole');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . '?act=API_AddUserToRole&ticket=' . $this->ticket . '&apptoken=' . $this->app_token;
-            $url_string .= '&userid=' . $userId . '&roleid=' . $roleId . '&udata=' . $udata;
-            $response = $this->transmit($url_string);
-        }
-
-        if ($response) {
-            return $response;
         }
         return false;
     }
@@ -1094,70 +881,6 @@ class QuickBase {
             $response = $this->transmit($xml_packet, 'API_RunImport');
         } else {
             $url_string = $this->qb_ssl . $this->db_id . '?act=API_RunImport&ticket=' . $this->ticket . '&id=' . $id . '&apptoken=' . $this->app_token;
-            $response = $this->transmit($url_string);
-        }
-
-        if ($response) {
-            return $response;
-        }
-        return false;
-    }
-
-    /**
-     * API_SendInvitation
-     */
-    public function api_send_invitation($userId, $userText = '') {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('userid', $userId);
-
-            if (isset($userText))
-                $xml_packet->addChild('usertext', $userText);
-
-            if ($this->app_token)
-                $xml_packet->addChild('apptoken', $this->app_token);
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_SendInvitation');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . '?act=API_SendInvitation&ticket=' . $this->ticket . '&apptoken=' . $this->app_token;
-            $url_string .= '&userid=' . $userId . '&usertext=' . $userText;
-            $response = $this->transmit($url_string);
-        }
-        if ($response) {
-            return $response;
-        }
-        return false;
-    }
-
-    /**
-     * API_ProvisionUser
-     */
-    public function api_provision_user($email, $fname, $lname, $roleId = NULL, $udata = NULL) {
-        if ($this->xml) {
-            $xml_packet = new SimpleXMLElement('<qdbapi></qdbapi>');
-            $xml_packet->addChild('email', $email);
-            $xml_packet->addChild('fname', $fname);
-            $xml_packet->addChild('lname', $lname);
-
-            if (isset($roleId))
-                $xml_packet->addChild('roleid', $roleId);
-
-            if (isset($udata))
-                $xml_packet->addChild('udata', $udata);
-
-            if ($this->app_token)
-                $xml_packet->addChild('apptoken', $this->app_token);
-
-            $xml_packet->addChild('ticket', $this->ticket);
-            $xml_packet = $xml_packet->asXML();
-
-            $response = $this->transmit($xml_packet, 'API_ProvisionUser');
-        } else {
-            $url_string = $this->qb_ssl . $this->db_id . '?act=API_ProvisionUser&ticket=' . $this->ticket . '&apptoken=' . $this->app_token;
-            $url_string .= '&email=' . $email . '&fname=' . $fname . '&lname =' . $lname . '&roleid=' . $roleId . '&udata=' . $udata;
             $response = $this->transmit($url_string);
         }
 
