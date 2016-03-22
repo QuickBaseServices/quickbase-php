@@ -1,16 +1,16 @@
 {
-    "name": "quickbaseservices/quickbase-php",
-    "description": "A full-featured PHP wrapper for the QuickBase API.",
+    "name": "danielkesselberg/quickbase-php",
+    "description": "Wrapper for QuickBase API.",
     "license" : "MIT",
     "type": "library",
-    "homepage": "https://github.com/QuickBaseServices/quickbase-php",
+    "homepage": "https://github.com/danielkesselberg/quickbase-php",
     "require": {
         "php": ">=4.7.0",
         "ext-curl": "*"
     },
     "support": {
         "email": "jeffrey@cloudbaseservices.com"
-    }, 
+    },
     "authors": [
         {
             "name": "Jeffrey Rothman",
